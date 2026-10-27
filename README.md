@@ -1,88 +1,139 @@
-# 📊 Relatório de Análise e Assunção do Projeto
+# Assistente de Investimentos com RPA e IA Generativa
 
-## 1. Identificação e Propósito do Projeto
-
-* **Nome do Projeto:** Assistente de Investimentos com RPA e IA Generativa (*DIO Lab Base*).
-* **Objetivo:** Construir um pipeline de automação inteligente de ponta a ponta:
-  1. **RPA (Extração):** Coletar dados cadastrais e financeiros de clientes simulados via web scraping em Python.
-  2. **Orquestração (N8N):** Receber os dados via Webhook, processar e cruzar os perfis dos clientes com uma base de produtos financeiros (`data.csv`).
-  3. **Personalização (IA Generativa / Templates):** Gerar recomendações de investimentos individualizadas e humanizadas para cada cliente conforme perfil de risco e saldo disponível.
+Pipeline de automação inteligente combinando técnicas de **RPA (Robotic Process Automation)** em Python com orquestração de fluxos e **IA Generativa no N8N**.
 
 ---
 
-## 2. Inventário dos Arquivos Analisados
+## 🎯 Objetivo do Projeto
 
-| Arquivo / Diretório | Tamanho | Função no Projeto | Status |
-| :--- | :---: | :--- | :---: |
-| [`README.md`](file:///t:/Google/n8n-assistente-investimentos/README.md) | ~7.6 KB | Documentação com arquitetura (Mermaid), especificações de MVP, etapas e referências. | Completo |
-| [`docs/index.html`](file:///t:/Google/n8n-assistente-investimentos/docs/index.html) | ~2.7 KB | Página web simulada com tabela `#clientes` contendo 10 clientes fictícios. | Pronto |
-| [`docs/data.csv`](file:///t:/Google/n8n-assistente-investimentos/docs/data.csv) | 371 B | Matriz de produtos de investimento por perfil, aplicação mínima e rentabilidade. | Pronto |
-| [`rpa/extrair_clientes.ipynb`](file:///t:/Google/n8n-assistente-investimentos/rpa/extrair_clientes.ipynb) | ~6.7 KB | Jupyter Notebook para extração via `requests` + `BeautifulSoup`. | Pendente integração |
+Desenvolver um pipeline automatizado de recomendação de investimentos:
+1. **RPA (Extração):** Coletar dados de clientes simulados via web scraping em Python.
+2. **Orquestração (N8N):** Processar os dados via Webhook e cruzar perfis com uma base de produtos de investimento (`data.csv`).
+3. **Personalização (IA / Templates):** Gerar recomendações personalizadas para cada cliente conforme perfil de risco e saldo.
 
 ---
 
-## 3. Diagnóstico Técnico Detalhado
+## 🏗️ Arquitetura do Projeto
 
-### 3.1. Dados de Clientes ([`docs/index.html`](file:///t:/Google/n8n-assistente-investimentos/docs/index.html))
-* Contém uma tabela HTML (`#clientes`) com classes semânticas (`.nome`, `.email`, `.saldo`, `.perfil`).
-* Amostra de clientes: **10 registros**, cobrindo 3 perfis:
-  * **Conservador:** Ana Silva (R$ 12.500,00), Daniel Oliveira (R$ 850,00), Gabriela Costa (R$ 1.500,00), Isabela Martins (R$ 500,00).
-  * **Moderado:** Bruno Lima (R$ 3.200,00), Felipe Santos (R$ 7.800,00), Henrique Alves (R$ 22.300,00).
-  * **Arrojado:** Carla Souza (R$ 28.900,00), Elena Rodrigues (R$ 45.000,00), João Pereira (R$ 15.000,00).
+```mermaid
+flowchart LR
+  subgraph GH["Fontes de Dados"]
+    A["Clientes<br>(docs/index.html)"]
+    E["Investimentos (docs/data.csv)"]
+  end
 
-### 3.2. Catálogo de Investimentos ([`docs/data.csv`](file:///t:/Google/n8n-assistente-investimentos/docs/data.csv))
-* Colunas: `perfil,produto,minimo,rentabilidade`.
-* Produtos cadastrados:
-  * **Conservador:** Poupança (mín. R$ 100, 6.2%), CDB Liquidez Diária (mín. R$ 1.000, 12.5%), Tesouro Selic (mín. R$ 500, 13.0%).
-  * **Moderado:** CDB Prefixado (mín. R$ 1.000, 14.0%), Tesouro IPCA+ (mín. R$ 1.000, IPCA+6.0%), Fundo Multimercado (mín. R$ 5.000, 16.0%).
-  * **Arrojado:** Criptomoedas (mín. R$ 100, Variável), Ações ETF (mín. R$ 500, Variável), Fundo de Ações (mín. R$ 10.000, Variável).
+  subgraph PY["RPA (Python)"]
+    B["extrair_clientes.py / .ipynb"]
+  end
 
-### 3.3. Script RPA ([`rpa/extrair_clientes.ipynb`](file:///t:/Google/n8n-assistente-investimentos/rpa/extrair_clientes.ipynb))
-* Faz requisição HTTP via `requests` e faz o parse da tabela com `BeautifulSoup`.
-* **Gargalo/Ponto de Atenção:**
-  1. O envio dos dados para o Webhook do N8N está atualmente comentado como `# TODO (N8N)`.
-  2. O código está apenas em formato de Notebook Jupyter (`.ipynb`), o que dificulta automações autônomas via agendamento (cron, CLI ou background process).
+  subgraph N8["N8N (Workflow)"]
+    C["Webhook<br>(POST /clientes)"]
+    D["Cruzar Dados<br>(Clientes x Investimentos)"]
+    M["Gerar Mensagem<br>(Template / LLM)"]
+    C --> D --> M
+  end
 
----
+  subgraph OUT["Saída"]
+    O["Mensagens Personalizadas<br>(JSON / Notificação)"]
+  end
 
-## 4. Diagnóstico do Ambiente Local
+  A <-->|HTTP / Local| B -->|JSON Payload| C
+  E <-->|HTTP / Local| D
+  M --> O
 
-* **Python:** `3.14.6` instalado e funcional.
-* **Node.js & NPM:** `v24.19.0` e `11.17.0` instalados.
-  * O CLI global `n8n` não está no PATH, mas pode ser executado localmente sem instalação global via `npx n8n` ou conectado a uma instância na nuvem / Docker.
-* **Git:** Repositório ainda não inicializado localmente.
+  classDef source fill:#E3F2FD,stroke:#1E88E5,stroke-width:1px,color:#0D47A1;
+  classDef rpa fill:#E8F5E9,stroke:#43A047,stroke-width:1px,color:#1B5E20;
+  classDef n8n fill:#FFF3E0,stroke:#FB8C00,stroke-width:1px,color:#E65100;
+  classDef out fill:#FCE4EC,stroke:#D81B60,stroke-width:1px,color:#880E4F;
 
----
-
-## 5. O Que Falta Implementar (Entregáveis do Projeto)
-
-Conforme os critérios de entrega especificados no [`README.md`](file:///t:/Google/n8n-assistente-investimentos/README.md):
-
-1. **Repositório e Estrutura:**
-   - [ ] Inicializar o versionamento Git (`git init`).
-   - [ ] Criar arquivo `.gitignore` (para `.env`, `__pycache__`, arquivos temporários).
-   - [ ] Criar `.env.example` para URLs de webhook e credenciais de IA (OpenAI / Gemini / Anthropic).
-2. **Script RPA Autônomo:**
-   - [ ] Criar versão em script Python padrão (`rpa/extrair_clientes.py`), permitindo rodar via terminal ou agendamento, com suporte a variáveis de ambiente e argumentos de linha de comando.
-   - [ ] Atualizar o notebook [`extrair_clientes.ipynb`](file:///t:/Google/n8n-assistente-investimentos/rpa/extrair_clientes.ipynb) para parametrizar a URL do webhook.
-3. **Fluxo N8N (`n8n/workflow.json`):**
-   - [ ] Criar a pasta `n8n/` e construir o workflow JSON exportável.
-   - [ ] Configurar nós no N8N:
-     - **Webhook Trigger (POST):** Recebe a lista de clientes.
-     - **Data Fetch / Reading:** Obtenção das opções de investimento do `data.csv`.
-     - **Code Node / Cruzamento:** Filtra e seleciona os produtos compatíveis com o perfil e com o saldo mínimo do cliente.
-     - **Geração de Mensagens:**
-       - **Modo MVP:** Templates de mensagem estruturados por perfil.
-       - **Modo Desafio (IA Generativa):** Nó com LLM (OpenAI/Gemini/Ollama) para gerar recomendações personalizadas com tom consultivo e amigável.
-     - **Resposta / Output:** Retorno de confirmação ou disparo das mensagens.
+  class A,E source;
+  class B rpa;
+  class C,D,M n8n;
+  class O out;
+```
 
 ---
 
-## 🚀 Próximo Passo Recomendado
+## 📁 Estrutura do Repositório
 
-Podemos iniciar a estruturação do projeto de imediato:
-1. **Criar a versão executável em Python (`extrair_clientes.py`)** e o `.env.example`.
-2. **Construir o arquivo `n8n/workflow.json`** completo (pronto para importar no N8N, já configurado para cruzar clientes, produtos e gerar as mensagens).
-3. **Inicializar o Git** com `.gitignore` adequado.
+```text
+n8n-assistente-investimentos/
+├── .env.example                # Variáveis de ambiente configuráveis
+├── .gitignore                  # Regras de exclusão do Git
+├── README.md                   # Documentação do projeto
+├── requirements.txt            # Dependências Python (requests, beautifulsoup4, python-dotenv)
+├── docs/
+│   ├── data.csv                # Matriz de produtos de investimentos por perfil
+│   └── index.html              # Página simulada com tabela de clientes
+├── n8n/
+│   ├── README.md               # Guia de importação do workflow
+│   └── workflow.json           # Workflow N8N exportado
+└── rpa/
+    ├── extrair_clientes.ipynb  # Notebook para execução no Colab / Jupyter
+    └── extrair_clientes.py     # Script Python para execução autônoma via CLI
+```
 
-Como deseja proceder para começarmos a implementação?
+---
+
+## 📊 Matriz de Investimentos Cadastrada (`docs/data.csv`)
+
+| Perfil | Produto | Aporte Mínimo | Rentabilidade |
+| :--- | :--- | :---: | :--- |
+| **Conservador** | Poupança | R$ 100,00 | 6.2% a.a. |
+| **Conservador** | Tesouro Selic | R$ 500,00 | 13.0% a.a. |
+| **Conservador** | CDB Liquidez Diária | R$ 1.000,00 | 12.5% a.a. |
+| **Moderado** | CDB Prefixado | R$ 1.000,00 | 14.0% a.a. |
+| **Moderado** | Tesouro IPCA+ | R$ 1.000,00 | IPCA + 6.0% |
+| **Moderado** | Fundo Multimercado | R$ 5.000,00 | 16.0% a.a. |
+| **Arrojado** | Criptomoedas | R$ 100,00 | Variável |
+| **Arrojado** | Ações ETF | R$ 500,00 | Variável |
+| **Arrojado** | Fundo de Ações | R$ 10.000,00 | Variável |
+
+---
+
+## 🚀 Como Executar
+
+### 1. Clonar o Repositório e Configurar Ambiente
+```bash
+git clone https://github.com/christianocassio/n8nFinalmente.git
+cd n8nFinalmente
+
+# Criar ambiente virtual (opcional, recomendado)
+python -m venv .venv
+# Ativar no Windows PowerShell:
+.venv\Scripts\Activate.ps1
+
+# Instalar dependências
+pip install -r requirements.txt
+
+# Configurar variáveis de ambiente
+cp .env.example .env
+```
+
+### 2. Configurar o Workflow no N8N
+1. No N8N, importe o arquivo `n8n/workflow.json`.
+2. Ative o workflow ou utilize o endpoint de teste (`/webhook-test/clientes`).
+3. Copie a URL do Webhook e adicione no arquivo `.env` ou execute o script com o parâmetro `--webhook-url`.
+
+### 3. Executar o Script RPA
+```bash
+# Execução padrão (lê .env)
+python rpa/extrair_clientes.py
+
+# Simulação sem envio (Dry-Run)
+python rpa/extrair_clientes.py --dry-run
+
+# Execução informando webhook explicitamente
+python rpa/extrair_clientes.py --webhook-url "http://localhost:5678/webhook/clientes"
+```
+
+---
+
+## 📋 Status dos Entregáveis
+
+- [x] Repositório Git configurado e integrado ao GitHub (`n8nFinalmente`)
+- [x] Estrutura padronizada de diretórios (`docs/`, `rpa/`, `n8n/`)
+- [x] Arquivo de dependências (`requirements.txt`) e `.env.example`
+- [ ] Script RPA autônomo com envio real via POST (`rpa/extrair_clientes.py`)
+- [ ] Workflow N8N construído e exportado (`n8n/workflow.json`)
+- [ ] Teste de ponta a ponta com geração de mensagens
