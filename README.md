@@ -1,5 +1,7 @@
 # Assistente de Investimentos com RPA e IA Generativa
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1nwUySmKhXc7v4Ni8J95xFbL8chbyNUGZ?usp=sharing)
+
 Pipeline de automação inteligente combinando técnicas de **RPA (Robotic Process Automation)** em Python com orquestração de fluxos e **IA Generativa no N8N**.
 
 ---
