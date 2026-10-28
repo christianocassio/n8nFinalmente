@@ -1,6 +1,6 @@
 # Workflow N8N: Assistente de Investimentos
 
-Este diretório contém a definição exportada do fluxo de automação para o N8N ([`workflow.json`](file:///t:/Google/n8n-assistente-investimentos/n8n/workflow.json)).
+Este diretório contém a definição exportada do fluxo de automação para o N8N ([`workflow.json`](./workflow.json)).
 
 ---
 
@@ -56,5 +56,5 @@ Para substituir ou enriquecer as mensagens com IA Generativa (Google Gemini, Ope
 
 1. Acesse sua instância do N8N (Cloud ou Local).
 2. No menu lateral, clique em **Workflows** > botão **Add Workflow** (ou ícone de três pontos `...` no canto superior direito).
-3. Selecione **Import from File...** e escolha [`workflow.json`](file:///t:/Google/n8n-assistente-investimentos/n8n/workflow.json).
+3. Selecione **Import from File...** e escolha [`workflow.json`](./workflow.json).
 4. Clique em **Save** e ative o botão **Active** (ou teste via **Test step / Listen for event**).

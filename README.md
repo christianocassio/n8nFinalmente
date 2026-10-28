@@ -1,6 +1,7 @@
 # Assistente de Investimentos com RPA e IA Generativa
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1nwUySmKhXc7v4Ni8J95xFbL8chbyNUGZ?usp=sharing)
+[![Open In Colab (GitHub)](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/christianocassio/n8nFinalmente/blob/main/rpa/extrair_clientes.ipynb)
+[![Drive Original](https://img.shields.io/badge/Google%20Drive-Colab%20Original-yellow?logo=google-drive)](https://colab.research.google.com/drive/1nwUySmKhXc7v4Ni8J95xFbL8chbyNUGZ?usp=sharing)
 
 Pipeline de automação inteligente combinando técnicas de **RPA (Robotic Process Automation)** em Python com orquestração de fluxos e **IA Generativa no N8N**.
 
@@ -142,3 +143,11 @@ python rpa/extrair_clientes.py --webhook-url "http://localhost:5678/webhook/clie
 - [x] Regras de cruzamento de clientes x investimentos com aporte mínimo
 - [x] Geração de mensagens consultivas personalizadas por perfil
 - [x] Documentação técnica de integração com IA Generativa (LLMs)
+
+---
+
+## 📦 Versões
+
+Consulte as versões publicadas na página de [Releases do GitHub](https://github.com/christianocassio/n8nFinalmente/releases).
+
+A versão inicial `v1.0.0` reúne o fluxo RPA com envio ao webhook do N8N, o workflow exportável e a documentação de execução e integração.
