@@ -1,0 +1,131 @@
+{
+  "name": "Assistente de Investimentos - RPA & IA",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "clientes",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-clientes",
+      "name": "Webhook Clientes",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "assistente-investimentos-webhook"
+    },
+    {
+      "parameters": {
+        "url": "https://digitalinnovationone.github.io/dio-lab-assistente-investimentos-rpa-n8n/data.csv",
+        "options": {}
+      },
+      "id": "http-fetch-investimentos",
+      "name": "Buscar Investimentos CSV",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Obtém os dados do Webhook\nconst webhookData = $('Webhook Clientes').first().json.body;\nlet clientes = [];\n\nif (webhookData && Array.isArray(webhookData.clientes)) {\n  clientes = webhookData.clientes;\n} else if (Array.isArray(webhookData)) {\n  clientes = webhookData;\n} else if (webhookData && typeof webhookData === 'object') {\n  clientes = [webhookData];\n}\n\n// 2. Obtém o CSV de investimentos retornado pelo nó HTTP\nconst csvRaw = $input.first().json.data || $input.first().json;\nconst csvTexto = typeof csvRaw === 'string' ? csvRaw : (csvRaw.body || '');\n\n// Parse simples e robusto do CSV\nconst linhasCsv = csvTexto.trim().split(/\\r?\\n/);\nconst cabecalho = linhasCsv[0].split(',').map(c => c.trim().toLowerCase());\n\nconst investimentos = [];\nfor (let i = 1; i < linhasCsv.length; i++) {\n  const cols = linhasCsv[i].split(',').map(c => c.trim());\n  if (cols.length >= 4) {\n    investimentos.push({\n      perfil: cols[0],\n      produto: cols[1],\n      minimo: parseFloat(cols[2]) || 0,\n      rentabilidade: cols[3]\n    });\n  }\n}\n\n// 3. Função auxiliar para converter saldo string em float\nfunction parseSaldo(saldoStr) {\n  if (typeof saldoStr === 'number') return saldoStr;\n  if (!saldoStr) return 0;\n  const limpo = saldoStr.toString()\n    .replace('R$', '')\n    .replace(/\\s/g, '')\n    .replace(/\\./g, '')\n    .replace(',', '.');\n  return parseFloat(limpo) || 0;\n}\n\n// 4. Cruzamento dos dados: Clientes x Investimentos\nconst resultado = clientes.map(cliente => {\n  const saldoNum = cliente.saldo_numerico !== undefined ? cliente.saldo_numerico : parseSaldo(cliente.saldo);\n  \n  // Filtra produtos compatíveis com o perfil do cliente\n  const produtosPerfil = investimentos.filter(inv => \n    inv.perfil.toLowerCase() === (cliente.perfil || '').toLowerCase()\n  );\n\n  // Filtra produtos onde o saldo é suficiente para o aporte mínimo\n  const produtosAcessiveis = produtosPerfil.filter(inv => saldoNum >= inv.minimo);\n  \n  // Produtos que ultrapassam o saldo atual (para metas de expansão)\n  const produtosParaMeta = produtosPerfil.filter(inv => saldoNum < inv.minimo);\n\n  return {\n    cliente: {\n      nome: cliente.nome,\n      email: cliente.email,\n      saldo: cliente.saldo,\n      saldo_numerico: saldoNum,\n      perfil: cliente.perfil\n    },\n    produtos_recomendados: produtosAcessiveis.length > 0 ? produtosAcessiveis : produtosPerfil,\n    produtos_futuros: produtosParaMeta,\n    total_opcoes_compativeis: produtosAcessiveis.length\n  };\n});\n\nreturn resultado.map(item => ({ json: item }));"
+      },
+      "id": "code-cruzar-dados",
+      "name": "Cruzar Clientes x Investimentos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Gera mensagens personalizadas consultivas para cada cliente\nconst itens = $input.all();\n\nconst resultados = itens.map(item => {\n  const data = item.json;\n  const c = data.cliente;\n  const prods = data.produtos_recomendados || [];\n  \n  let saudacao = `Olá, ${c.nome}! Preparamos uma análise financeira exclusiva para você.`;\n  let resumoPerfil = '';\n  \n  if (c.perfil.toLowerCase() === 'conservador') {\n    resumoPerfil = 'Como seu perfil é Conservador, priorizamos liquidez, segurança patrimonial e previsibilidade de retornos.';\n  } else if (c.perfil.toLowerCase() === 'moderado') {\n    resumoPerfil = 'Como seu perfil é Moderado, buscamos o equilíbrio ideal entre preservação de capital e rentabilidades superiores à inflação.';\n  } else {\n    resumoPerfil = 'Como seu perfil é Arrojado, seu foco está em potencial de valorização expressiva e estratégias ativas de mercado.';\n  }\n  \n  const listaFormatada = prods.map(p => \n    `- ${p.produto}: Rentabilidade de ${p.rentabilidade} (Aporte mínimo: R$ ${p.minimo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`\n  ).join('\\n');\n  \n  let mensagemCompleta = `${saudacao}\\n\\n${resumoPerfil}\\n\\nCom base no seu saldo disponível de ${c.saldo}, selecionamos as seguintes opções sob medida:\\n${listaFormatada}\\n\\n💡 Recomendação do Consultor: Mantenha sempre sua disciplina de aportes mensais para maximizar seus juros compostos. Conte conosco para tirar dúvidas!`;\n  \n  return {\n    json: {\n      cliente_nome: c.nome,\n      cliente_email: c.email,\n      perfil: c.perfil,\n      saldo: c.saldo,\n      total_produtos: prods.length,\n      produtos: prods,\n      mensagem_personalizada: mensagemCompleta,\n      timestamp: new Date().toISOString()\n    }\n  };\n});\n\nreturn resultados;"
+      },
+      "id": "code-gerar-mensagens",
+      "name": "Gerar Mensagens Consultivas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"sucesso\",\n  \"total_clientes_processados\": $input.all().length,\n  \"recomendacoes\": $input.all().map(i => i.json)\n}",
+        "options": {}
+      },
+      "id": "respond-webhook",
+      "name": "Responder ao Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1200,
+        300
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Clientes": {
+      "main": [
+        [
+          {
+            "node": "Buscar Investimentos CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Investimentos CSV": {
+      "main": [
+        [
+          {
+            "node": "Cruzar Clientes x Investimentos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cruzar Clientes x Investimentos": {
+      "main": [
+        [
+          {
+            "node": "Gerar Mensagens Consultivas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar Mensagens Consultivas": {
+      "main": [
+        [
+          {
+            "node": "Responder ao Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f7a3b4e1-d2c9-4a8e-9f12-3b4c5d6e7f8a",
+  "id": "assistente-investimentos-workflow",
+  "tags": []
+}

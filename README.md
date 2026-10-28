@@ -134,6 +134,9 @@ python rpa/extrair_clientes.py --webhook-url "http://localhost:5678/webhook/clie
 - [x] Repositório Git configurado e integrado ao GitHub (`n8nFinalmente`)
 - [x] Estrutura padronizada de diretórios (`docs/`, `rpa/`, `n8n/`)
 - [x] Arquivo de dependências (`requirements.txt`) e `.env.example`
-- [ ] Script RPA autônomo com envio real via POST (`rpa/extrair_clientes.py`)
-- [ ] Workflow N8N construído e exportado (`n8n/workflow.json`)
-- [ ] Teste de ponta a ponta com geração de mensagens
+- [x] Script RPA autônomo com extração e envio via POST (`rpa/extrair_clientes.py`)
+- [x] Notebook Jupyter parametrizado (`rpa/extrair_clientes.ipynb`)
+- [x] Workflow N8N exportado e documentado (`n8n/workflow.json`)
+- [x] Regras de cruzamento de clientes x investimentos com aporte mínimo
+- [x] Geração de mensagens consultivas personalizadas por perfil
+- [x] Documentação técnica de integração com IA Generativa (LLMs)
