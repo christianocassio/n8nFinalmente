@@ -60,8 +60,7 @@
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={\n  \"status\": \"sucesso\",\n  \"total_clientes_processados\": $input.all().length,\n  \"recomendacoes\": $input.all().map(i => i.json)\n}",
+        "respondWith": "allIncomingItems",
         "options": {}
       },
       "id": "respond-webhook",
