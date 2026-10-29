@@ -1,0 +1,159 @@
+{
+  "name": "Assistente de Investimentos - com Google Gemini IA",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "clientes",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-clientes-ia",
+      "name": "Webhook Clientes",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ],
+      "webhookId": "assistente-investimentos-gemini"
+    },
+    {
+      "parameters": {
+        "url": "https://digitalinnovationone.github.io/dio-lab-assistente-investimentos-rpa-n8n/data.csv",
+        "options": {}
+      },
+      "id": "http-fetch-investimentos-ia",
+      "name": "Buscar Investimentos CSV",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Obtém os dados do Webhook\nconst webhookData = $('Webhook Clientes').first().json.body;\nlet clientes = [];\n\nif (webhookData && Array.isArray(webhookData.clientes)) {\n  clientes = webhookData.clientes;\n} else if (Array.isArray(webhookData)) {\n  clientes = webhookData;\n} else if (webhookData && typeof webhookData === 'object') {\n  clientes = [webhookData];\n}\n\n// 2. Obtém o CSV de investimentos\nconst csvRaw = $input.first().json.data || $input.first().json;\nconst csvTexto = typeof csvRaw === 'string' ? csvRaw : (csvRaw.body || '');\n\nconst linhasCsv = csvTexto.trim().split(/\\r?\\n/);\nconst investimentos = [];\nfor (let i = 1; i < linhasCsv.length; i++) {\n  const cols = linhasCsv[i].split(',').map(c => c.trim());\n  if (cols.length >= 4) {\n    investimentos.push({\n      perfil: cols[0],\n      produto: cols[1],\n      minimo: parseFloat(cols[2]) || 0,\n      rentabilidade: cols[3]\n    });\n  }\n}\n\nfunction parseSaldo(saldoStr) {\n  if (typeof saldoStr === 'number') return saldoStr;\n  if (!saldoStr) return 0;\n  const limpo = saldoStr.toString().replace('R$', '').replace(/\\s/g, '').replace(/\\./g, '').replace(',', '.');\n  return parseFloat(limpo) || 0;\n}\n\n// 3. Cruzamento de clientes x investimentos\nconst resultado = clientes.map(cliente => {\n  const saldoNum = cliente.saldo_numerico !== undefined ? cliente.saldo_numerico : parseSaldo(cliente.saldo);\n  \n  const produtosPerfil = investimentos.filter(inv => \n    inv.perfil.toLowerCase() === (cliente.perfil || '').toLowerCase()\n  );\n\n  const produtosAcessiveis = produtosPerfil.filter(inv => saldoNum >= inv.minimo);\n  const produtosFinais = produtosAcessiveis.length > 0 ? produtosAcessiveis : produtosPerfil;\n\n  // Monta lista de produtos como texto\n  const produtosTexto = produtosFinais.map(p => \n    `- ${p.produto}: Aporte minimo R$ ${p.minimo.toLocaleString('pt-BR')}, Rentabilidade ${p.rentabilidade}`\n  ).join('\\n');\n\n  // Monta o prompt completo\n  const promptText = `Voce e um assessor de investimentos experiente e atencioso da DIO Bank.\n\nDados do Cliente:\n- Nome: ${cliente.nome}\n- Perfil de Risco: ${cliente.perfil}\n- Saldo em Conta: ${cliente.saldo}\n\nOpcoes de Investimento Compativeis:\n${produtosTexto}\n\nTarefa:\nEscreva uma mensagem de assessoria financeira humanizada, empatica e encorajadora para ${cliente.nome}.\n1. Cumprimente-o pelo nome e comente brevemente sobre a postura do perfil ${cliente.perfil}.\n2. Apresente as opcoes recomendadas com seus aportes minimos e rentabilidades de forma clara e organizada.\n3. De uma dica estrategica de educacao financeira personalizada para o momento dele.\n4. Conclua com uma despedida calorosa convidando para conversar.\n\nSeja profissional, amigavel e direto ao ponto.`;\n\n  // Monta o corpo completo da requisicao ao Gemini\n  const geminiBody = {\n    contents: [\n      {\n        parts: [\n          {\n            text: promptText\n          }\n        ]\n      }\n    ],\n    generationConfig: {\n      temperature: 0.7,\n      maxOutputTokens: 600\n    }\n  };\n\n  return {\n    cliente: {\n      nome: cliente.nome,\n      email: cliente.email,\n      saldo: cliente.saldo,\n      saldo_numerico: saldoNum,\n      perfil: cliente.perfil\n    },\n    produtos_recomendados: produtosFinais,\n    geminiBody: geminiBody\n  };\n});\n\nreturn resultado.map(item => ({ json: item }));"
+      },
+      "id": "code-cruzar-dados-ia",
+      "name": "Cruzar Clientes x Investimentos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=COLE_SUA_API_KEY_AQUI",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.geminiBody) }}",
+        "options": {}
+      },
+      "id": "http-gemini-ia",
+      "name": "Consultor IA (Google Gemini)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrai o texto gerado pelo Gemini e consolida os dados do cliente\nconst itens = $input.all();\nconst itensAnteriores = $('Cruzar Clientes x Investimentos').all();\n\nreturn itens.map((item, index) => {\n  const dadosCliente = itensAnteriores[index] ? itensAnteriores[index].json : {};\n  const respostaGemini = item.json;\n  \n  let mensagemIA = '';\n  try {\n    mensagemIA = respostaGemini.candidates[0].content.parts[0].text;\n  } catch (err) {\n    mensagemIA = 'Nao foi possivel gerar a mensagem com IA no momento. Verifique sua chave GEMINI_API_KEY.';\n  }\n\n  return {\n    json: {\n      cliente_nome: dadosCliente.cliente ? dadosCliente.cliente.nome : 'Cliente',\n      cliente_email: dadosCliente.cliente ? dadosCliente.cliente.email : '',\n      perfil: dadosCliente.cliente ? dadosCliente.cliente.perfil : '',\n      saldo: dadosCliente.cliente ? dadosCliente.cliente.saldo : '',\n      produtos_recomendados: dadosCliente.produtos_recomendados || [],\n      recomendacao_ia_gemini: mensagemIA,\n      provedor_ia: 'Google Gemini 1.5 Flash',\n      timestamp: new Date().toISOString()\n    }\n  };\n});"
+      },
+      "id": "code-formatar-ia",
+      "name": "Formatar Recomendacao IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "respond-webhook-ia",
+      "name": "Responder ao Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        300
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Clientes": {
+      "main": [
+        [
+          {
+            "node": "Buscar Investimentos CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Investimentos CSV": {
+      "main": [
+        [
+          {
+            "node": "Cruzar Clientes x Investimentos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cruzar Clientes x Investimentos": {
+      "main": [
+        [
+          {
+            "node": "Consultor IA (Google Gemini)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultor IA (Google Gemini)": {
+      "main": [
+        [
+          {
+            "node": "Formatar Recomendacao IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Recomendacao IA": {
+      "main": [
+        [
+          {
+            "node": "Responder ao Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "c2d3e4f5-a6b7-4c8d-9e0f-1a2b3c4d5e6f",
+  "id": "assistente-investimentos-gemini",
+  "tags": []
+}

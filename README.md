@@ -69,8 +69,9 @@ n8n-assistente-investimentos/
 │   ├── data.csv                # Matriz de produtos de investimentos por perfil
 │   └── index.html              # Página simulada com tabela de clientes
 ├── n8n/
-│   ├── README.md               # Guia de importação do workflow
-│   └── workflow.json           # Workflow N8N exportado
+│   ├── README.md               # Guia de importação dos workflows
+│   ├── workflow.json           # Workflow N8N com mensagens por regras
+│   └── workflow_gemini.json    # Variante com geração de mensagens via Gemini
 └── rpa/
     ├── extrair_clientes.ipynb  # Notebook para execução no Colab / Jupyter
     └── extrair_clientes.py     # Script Python para execução autônoma via CLI
@@ -114,9 +115,10 @@ cp .env.example .env
 ```
 
 ### 2. Configurar o Workflow no N8N
-1. No N8N, importe o arquivo `n8n/workflow.json`.
-2. Ative o workflow ou utilize o endpoint de teste (`/webhook-test/clientes`).
-3. Copie a URL do Webhook e adicione no arquivo `.env` ou execute o script com o parâmetro `--webhook-url`.
+1. Escolha e importe `n8n/workflow.json` (mensagens por regras) ou `n8n/workflow_gemini.json` (mensagens geradas pelo Gemini).
+2. Para a variante Gemini, configure sua chave de API no nó **Consultor IA (Google Gemini)**, substituindo `COLE_SUA_API_KEY_AQUI` na URL. Não compartilhe nem versione sua chave.
+3. Ative o workflow ou utilize o endpoint de teste (`/webhook-test/clientes`).
+4. Copie a URL do Webhook e adicione no arquivo `.env` ou execute o script com o parâmetro `--webhook-url`.
 
 ### 3. Executar o Script RPA
 ```bash
@@ -140,6 +142,7 @@ python rpa/extrair_clientes.py --webhook-url "http://localhost:5678/webhook/clie
 - [x] Script RPA autônomo com extração e envio via POST (`rpa/extrair_clientes.py`)
 - [x] Notebook Jupyter parametrizado (`rpa/extrair_clientes.ipynb`)
 - [x] Workflow N8N exportado e documentado (`n8n/workflow.json`)
+- [x] Variante de workflow com geração via Google Gemini (`n8n/workflow_gemini.json`)
 - [x] Regras de cruzamento de clientes x investimentos com aporte mínimo
 - [x] Geração de mensagens consultivas personalizadas por perfil
 - [x] Documentação técnica de integração com IA Generativa (LLMs)
